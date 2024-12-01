@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_from_directory
 from datetime import datetime, timezone, timedelta
 import requests
 import time
@@ -338,6 +338,12 @@ def index():
 @app.template_filter('number_format')
 def number_format_filter(value):
     return "{:,.2f}".format(float(value))
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static/images',
+                             'icon.svg', 
+                             mimetype='image/svg+xml')
 
 if __name__ == '__main__':
     # Development
