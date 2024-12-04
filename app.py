@@ -343,14 +343,22 @@ def number_format_filter(value):
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory('static/images',
-                             'icon.svg', 
-                             mimetype='image/svg+xml')
+    return send_from_directory(os.path.join(app.root_path, 'static', 'images'),
+                             'icon.svg', mimetype='image/svg+xml')
 
 @app.route('/changelog')
 def changelog():
     return render_template('changelog.html',
                           google_analytics_id=Config.GOOGLE_ANALYTICS_ID)
+
+# Add this route specifically for PythonAnywhere
+@app.route('/static/<path:filename>')
+def custom_static(filename):
+    return send_from_directory('static', filename)
+
+@app.route('/static/images/icon.svg')
+def serve_icon():
+    return send_from_directory('static/images', 'icon.svg', mimetype='image/svg+xml')
 
 if __name__ == '__main__':
     # Development - run on local network
