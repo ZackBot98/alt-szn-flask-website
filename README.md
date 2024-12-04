@@ -64,6 +64,10 @@ The dashboard considers it an alt season when:
 - Top 10 Alts Performance is above 10%
 - Volume Dominance is above 60%
 
+## Changelog
+
+- A changelog page was added that leverages Notion's embed feature to display the development progress.
+
 ## Data Sources & APIs
 
 ### CoinGecko API Endpoints
@@ -140,3 +144,10 @@ The dashboard considers it an alt season when:
 - python-dotenv
 - TradingView Charts (via CDN)
 - Tailwind CSS (via CDN)
+
+## Links
+
+- [Buy Me a Coffee](https://buymeacoffee.com/thealtsignal)
+- [Alt Season Indicators](https://thealtsignal.com/alt-season-indicators)
+- [Changelog](https://thealtsignal.com/changelog)
+- [Alt Season Telegram Channel](https://t.me/thealtsignal)

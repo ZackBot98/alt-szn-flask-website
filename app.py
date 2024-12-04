@@ -15,6 +15,7 @@ class Config:
     COINGECKO_API_URL = "https://api.coingecko.com/api/v3/"
     FEAR_GREED_API = "https://api.alternative.me/fng/"
     API_KEY = os.getenv('COINGECKO_API_KEY')
+    GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID')
     CACHE_TIMEOUT = 35  # minutes
     CACHE_CLEANUP_AGE = 60  # minutes
     API_RATE_LIMIT_DELAY = 1  # seconds
@@ -330,7 +331,8 @@ def index():
                              top10_alts_perf=top10_alts_perf,
                              volume_dominance=volume_dominance,
                              last_updated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
-                             cache_status=cache_status)
+                             cache_status=cache_status,
+                             google_analytics_id=Config.GOOGLE_ANALYTICS_ID)
     except Exception as e:
         print(f"Error in index route: {str(e)}")
         return render_template('error.html', error=str(e)), 500
@@ -345,9 +347,14 @@ def favicon():
                              'icon.svg', 
                              mimetype='image/svg+xml')
 
+@app.route('/changelog')
+def changelog():
+    return render_template('changelog.html',
+                          google_analytics_id=Config.GOOGLE_ANALYTICS_ID)
+
 if __name__ == '__main__':
-    # Development
-    app.run(debug=True)
+    # Development - run on local network
+    app.run(debug=True, host='0.0.0.0', port=5000)
 else:
     # Production
     gunicorn_logger = logging.getLogger('gunicorn.error')
