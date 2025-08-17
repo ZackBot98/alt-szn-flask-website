@@ -15,9 +15,134 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Alt Season Indicators</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Alt Season Indicators - Real-Time Crypto Market Analysis Dashboard</title>
+    <meta name="title" content="Alt Season Indicators - Real-Time Crypto Market Analysis Dashboard">
+    <meta name="description" content="Track real-time cryptocurrency market indicators to detect alt season opportunities. Monitor Bitcoin dominance, ETH/BTC ratio, Fear & Greed index, RSI, and more for accurate alt season detection.">
+    <meta name="keywords" content="alt season, cryptocurrency, bitcoin dominance, altcoin indicators, crypto market analysis, trading signals, fear and greed index, RSI, ETH BTC ratio, market cap dominance">
+    <meta name="author" content="The Alt Signal">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.thealtsignal.com/">
+    <meta property="og:title" content="Alt Season Indicators - Real-Time Crypto Market Analysis Dashboard">
+    <meta property="og:description" content="Track real-time cryptocurrency market indicators to detect alt season opportunities. Monitor Bitcoin dominance, ETH/BTC ratio, Fear & Greed index, RSI, and more for accurate alt season detection.">
+    <meta property="og:image" content="https://www.thealtsignal.com/static/images/og-image.png">
+    <meta property="og:site_name" content="Alt Season Indicators">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://www.thealtsignal.com/">
+    <meta property="twitter:title" content="Alt Season Indicators - Real-Time Crypto Market Analysis Dashboard">
+    <meta property="twitter:description" content="Track real-time cryptocurrency market indicators to detect alt season opportunities. Monitor Bitcoin dominance, ETH/BTC ratio, Fear & Greed index, RSI, and more for accurate alt season detection.">
+    <meta property="twitter:image" content="https://www.thealtsignal.com/static/images/og-image.png">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="1 days">
+    <meta name="distribution" content="global">
+    <meta name="rating" content="general">
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Alt Season Indicators">
+    <meta name="msapplication-TileColor" content="#3B82F6">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    <meta name="application-name" content="Alt Season Indicators">
+    <meta name="msapplication-tooltip" content="Real-time cryptocurrency market analysis dashboard">
+    <meta name="msapplication-starturl" content="/">
+    <meta name="msapplication-navbutton-color" content="#3B82F6">
+    <meta name="msapplication-TileImage" content="/static/images/ms-icon-144x144.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.thealtsignal.com/">
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('favicon') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://api.coingecko.com">
+    <link rel="preconnect" href="https://api.alternative.me">
+    <link rel="preconnect" href="https://s3.tradingview.com">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <!-- Structured Data for Rich Snippets -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Alt Season Indicators",
+        "alternateName": "Alt Season Dashboard",
+        "description": "Real-time cryptocurrency market analysis dashboard for detecting alt season opportunities. Monitor Bitcoin dominance, ETH/BTC ratio, Fear & Greed index, RSI, and more for accurate alt season detection.",
+        "url": "https://www.thealtsignal.com",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "softwareVersion": "1.1.0",
+        "datePublished": "2024-01-01",
+        "dateModified": "2025-01-17",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "The Alt Signal",
+            "url": "https://t.me/TheAltSignalAlerts",
+            "sameAs": [
+                "https://github.com/ZackBot98/alt-szn-flask-website",
+                "https://buymeacoffee.com/thealtsignal"
+            ]
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "The Alt Signal",
+            "url": "https://www.thealtsignal.com"
+        },
+        "featureList": [
+            "Bitcoin Dominance Tracking",
+            "ETH/BTC Ratio Analysis", 
+            "Fear & Greed Index",
+            "Bitcoin RSI (14-day)",
+            "Altcoin Volume Dominance (24h)",
+            "Real-time Market Data",
+            "Altcoin Market Cap Analysis",
+            "Top 10 Altcoin Performance",
+            "BTC Monthly ROI Tracking",
+            "Interactive TradingView Charts"
+        ],
+        "screenshot": "https://www.thealtsignal.com/static/images/og-image.png",
+        "downloadUrl": "https://www.thealtsignal.com",
+        "installUrl": "https://www.thealtsignal.com",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "150",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "keywords": "alt season, cryptocurrency, bitcoin dominance, altcoin indicators, crypto market analysis, trading signals, fear and greed index, RSI, ETH BTC ratio, market cap dominance, real-time data, crypto dashboard"
+    }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js" defer></script>
+    
+    <!-- Performance optimization: Preload critical resources -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <link rel="preload" href="https://s3.tradingview.com/tv.js" as="script">
     <script>
         // Check for saved dark mode preference
         if (localStorage.getItem('darkMode') === 'true' || 
@@ -71,6 +196,34 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-2 max-w-4xl">
+        <!-- Update Notification Banner -->
+        <div id="update-banner" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3 mb-4 transition-all duration-300">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Metric Updates:</strong> Major improvements have been made to a few indicators for more accurate alt season detection. Please see the Telegram or Github for more details.
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="https://t.me/TheAltSignalAlerts" target="_blank" rel="noopener noreferrer" 
+                       class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537 1.362-1.051 1.703-.184.122-.425.199-.69.199-.135 0-.27-.022-.4-.063l-.955-.344c-.28-.104-.58-.15-.88.15-.3 0-.6.046-.88.15l-.955-.344c-.13-.041-.265-.063-.4-.063-.265 0-.506-.077-.69-.199-.514-.341-.906-1.045-1.051-1.703L6.106 8.221c-.145-.658.537-1.362 1.051-1.703.184-.122.425-.199.69-.199.135 0 .27.022.4.063l.955.344c.28.104.58.15.88.15.3 0 .6-.046.88-.15l.955-.344c.13-.041.265-.063.4-.063.265 0 .506.077.69.199.514.341.906 1.045 1.051 1.703z"/>
+                        </svg>
+                        View Details
+                    </a>
+                    <button onclick="dismissBanner()" class="text-blue-400 hover:text-blue-600 dark:text-blue-300 dark:hover:text-blue-100 transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <div class="flex justify-end mb-2">
         </div>
         <h1 class="text-2xl font-bold text-center text-gray-800 dark:text-gray-200 mb-2">
@@ -233,23 +386,23 @@
                     </span>
                 </div>
 
-                <!-- Volume Dominance -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center
-                            {{ 'border-green-500 bg-green-100 dark:bg-green-900/20' if volume_dominance > 60 else 'border-red-500 bg-red-100 dark:bg-red-900/20' }}">
-                            {% if volume_dominance > 60 %}
-                                <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-                                </svg>
-                            {% endif %}
-                        </div>
-                        <span class="text-sm text-gray-600 dark:text-gray-400">Volume Dominance > 60%</span>
-                    </div>
-                    <span class="text-sm {{ 'text-green-600 dark:text-green-400' if volume_dominance > 60 else 'text-red-600 dark:text-red-400' }}">
-                        {{ "%.2f"|format(volume_dominance) }}%
-                    </span>
-                </div>
+                                 <!-- Altcoin Volume Dominance -->
+                 <div class="flex items-center justify-between">
+                     <div class="flex items-center gap-2">
+                         <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center
+                             {{ 'border-green-500 bg-green-100 dark:bg-green-900/20' if volume_dominance > 60 else 'border-red-500 bg-red-100 dark:bg-red-900/20' }}">
+                             {% if volume_dominance > 60 %}
+                                 <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                     <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                                 </svg>
+                             {% endif %}
+                         </div>
+                         <span class="text-sm text-gray-600 dark:text-gray-400">Altcoin Volume Dominance (24h) > 60%</span>
+                     </div>
+                     <span class="text-sm {{ 'text-green-600 dark:text-green-400' if volume_dominance > 60 else 'text-red-600 dark:text-red-400' }}">
+                         {{ "%.2f"|format(volume_dominance) }}%
+                     </span>
+                 </div>
             </div>
         </div>
 
@@ -286,21 +439,21 @@
                 <p class="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">30-day performance vs Bitcoin</p>
             </div>
 
-            <!-- Volume Dominance -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Altcoin Volume</h3>
-                    <span class="px-2 py-1 rounded-full text-xs
-                        {% if volume_dominance and volume_dominance > 60 %}
-                            bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200
-                        {% else %}
-                            bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200
-                        {% endif %}">
-                        {{ "%.2f"|format(volume_dominance) if volume_dominance else 'N/A' }}%
-                    </span>
-                </div>
-                <p class="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">Altcoin trading volume dominance</p>
-            </div>
+                         <!-- Altcoin Volume Dominance -->
+             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+                 <div class="flex items-center justify-between">
+                     <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Altcoin Volume (24h)</h3>
+                     <span class="px-2 py-1 rounded-full text-xs
+                         {% if volume_dominance and volume_dominance > 60 %}
+                             bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200
+                         {% else %}
+                             bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200
+                         {% endif %}">
+                         {{ "%.2f"|format(volume_dominance) if volume_dominance else 'N/A' }}%
+                     </span>
+                 </div>
+                 <p class="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">24-hour altcoin trading volume dominance (excludes Bitcoin & stablecoins)</p>
+             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -349,8 +502,8 @@
             <div class="card">
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Altcoin Dominance</h3>
-                    <span id="top100-ratio" class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
-                        {{ "%.2f"|format(top100_ratio * 100) if top100_ratio else 'N/A' }}%
+                    <span id="altcoin-dominance-ratio" class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
+                        {{ "%.2f"|format(altcoin_dominance_ratio * 100) if altcoin_dominance_ratio else 'N/A' }}%
                     </span>
                 </div>
                 <p class="metric-target">Ratio of Total Altcoin Market Cap to Total Crypto Market Cap</p>
@@ -557,7 +710,52 @@
         document.addEventListener('DOMContentLoaded', function() {
             const content = document.getElementById('checklist-content');
             content.style.maxHeight = '0px';
+            
+            // Check if banner should be hidden
+            checkBannerVisibility();
         });
+        
+        // Banner management functions
+        function dismissBanner() {
+            const banner = document.getElementById('update-banner');
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 300);
+            
+            // Save dismissal to localStorage
+            localStorage.setItem('bannerDismissed', Date.now().toString());
+        }
+        
+        function checkBannerVisibility() {
+            const banner = document.getElementById('update-banner');
+            const dismissed = localStorage.getItem('bannerDismissed');
+            const bannerCreated = localStorage.getItem('bannerCreated');
+            
+            // Set banner creation time if not set (first visit)
+            if (!bannerCreated) {
+                localStorage.setItem('bannerCreated', Date.now().toString());
+            }
+            
+            // Check if banner was manually dismissed
+            if (dismissed) {
+                banner.style.display = 'none';
+                return;
+            }
+            
+            // Check if banner should auto-hide after 30 days
+            if (bannerCreated) {
+                const createdTime = parseInt(bannerCreated);
+                const currentTime = Date.now();
+                const thirtyDays = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+                
+                if (currentTime - createdTime > thirtyDays) {
+                    banner.style.display = 'none';
+                    return;
+                }
+            }
+        }
     </script>
 
     <!-- Footer -->

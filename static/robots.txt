@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+
+# Block access to sensitive files
+Disallow: /app.py
+Disallow: /requirements.txt
+Disallow: /wsgi.py
+Disallow: /test_scraping.py
+Disallow: /.env
+Disallow: /app.log
+
+# Allow access to important files
+Allow: /static/
+Allow: /templates/
+Allow: /changelog
+
+# Sitemap location
+Sitemap: https://www.thealtsignal.com/sitemap.xml
+
+# Crawl delay (optional, helps with rate limiting)
+Crawl-delay: 1
+
+# Additional directives for better SEO
+# Host: https://www.thealtsignal.com
+# Clean-param: utm_source&utm_medium&utm_campaign
