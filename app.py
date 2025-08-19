@@ -20,16 +20,17 @@ class Config:
     FEAR_GREED_API = "https://api.alternative.me/fng/"
     API_KEY = os.getenv('COINGECKO_API_KEY')
     GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID')
-    # More conservative caching to stay well within 10,000 calls/month limit
-    CACHE_TIMEOUT = 60  # minutes (increased from 35 to 60)
-    CACHE_CLEANUP_AGE = 120  # minutes (increased from 60 to 120)
-    # Ultra-conservative rate limiting to NEVER get 429 errors
-    # CoinGecko allows 50 calls/minute for free tier, we'll use only 25 to be safe
-    API_RATE_LIMIT_DELAY = 3.0  # seconds (1 call every 3 seconds = 20 calls/minute)
-    MAX_REQUESTS_PER_MINUTE = 20  # Reduced from 30 to 20 for safety
+    # Updated to 2 pulls per day instead of hourly
+    CACHE_TIMEOUT = 720  # minutes (12 hours = 720 minutes)
+    CACHE_CLEANUP_AGE = 1440  # minutes (24 hours = 1440 minutes)
+    # Rate limiting: 30 calls per minute = 1 call every 2 seconds
+    API_RATE_LIMIT_DELAY = 2.1  # seconds (slightly over 2 to be safe)
+    MAX_REQUESTS_PER_MINUTE = 30
     # API usage tracking
     MAX_MONTHLY_API_CALLS = 10000
-    SAFETY_MARGIN = 0.7  # Use only 70% of available calls for extra safety
+    SAFETY_MARGIN = 0.8  # Use only 80% of available calls for safety
+    # Daily pull schedule (UTC times)
+    PULL_TIMES = [14, 22]  # 2 PM and 10 PM UTC
 
 app = Flask(__name__)
 
@@ -51,16 +52,6 @@ class CacheManager:
                 'next_refresh': None,
                 'cache_hits': 0
             }
-        }
-        # Individual cache status tracking
-        self.cache_statuses = {
-            'market_data': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None},
-            'eth_btc_ratio': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None},
-            'bitcoin_rsi': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None},
-            'btc_monthly_roi': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None},
-            'top10_alts_performance': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None},
-            'altcoin_volume_dominance': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None},
-            'fear_greed_index': {'status': 'unknown', 'last_attempt': None, 'last_success': None, 'error': None}
         }
         # API usage tracking
         self.api_calls_this_month = 0
@@ -108,29 +99,6 @@ class CacheManager:
             'month_start': self.month_start.strftime("%Y-%m-%d"),
             'usage_percentage': (self.api_calls_this_month / max_allowed) * 100
         }
-    
-    def update_cache_status(self, key, status, error=None):
-        """Update the status of a specific cache item"""
-        if key in self.cache_statuses:
-            self.cache_statuses[key].update({
-                'status': status,
-                'last_attempt': datetime.now(),
-                'error': error
-            })
-            if status == 'success':
-                self.cache_statuses[key]['last_success'] = datetime.now()
-    
-    def get_cache_statuses(self):
-        """Get all cache statuses with formatted timestamps"""
-        formatted_statuses = {}
-        for key, status in self.cache_statuses.items():
-            formatted_statuses[key] = {
-                'status': status['status'],
-                'last_attempt': status['last_attempt'].strftime("%H:%M:%S") if status['last_attempt'] else "Never",
-                'last_success': status['last_success'].strftime("%H:%M:%S") if status['last_success'] else "Never",
-                'error': status['error']
-            }
-        return formatted_statuses
     
     def get_stablecoin_ids(self):
         """Get cached stablecoin IDs or fetch if not available"""
@@ -193,136 +161,44 @@ class CacheManager:
 cache_manager = CacheManager()
 
 class RateLimiter:
-    def __init__(self, max_requests_per_minute=20):
+    def __init__(self, max_requests_per_minute=30):
         self.max_requests = max_requests_per_minute
         self.requests = []
-        self.last_request_time = 0
-        self.min_interval = 3.0  # Minimum 3 seconds between requests
     
     def can_make_request(self):
         current_time = time.time()
         # Remove requests older than 1 minute
         self.requests = [req_time for req_time in self.requests if current_time - req_time < 60]
         
-        # Check if enough time has passed since last request
-        if current_time - self.last_request_time < self.min_interval:
-            return False
-        
         if len(self.requests) < self.max_requests:
             self.requests.append(current_time)
-            self.last_request_time = current_time
             return True
         return False
     
     def wait_if_needed(self):
         while not self.can_make_request():
-            current_time = time.time()
-            # Calculate wait time based on rate limit
-            if len(self.requests) >= self.max_requests:
-                # Wait until we can make another request
-                wait_time = 60 - (current_time - self.requests[0])
-                if wait_time > 0:
-                    time.sleep(min(wait_time, 1))  # Wait up to 1 second at a time
-                else:
-                    time.sleep(1)  # Wait 1 second and check again
+            wait_time = 60 - (time.time() - self.requests[0])
+            if wait_time > 0:
+                time.sleep(min(wait_time, 1))  # Wait up to 1 second at a time
             else:
-                # Wait for minimum interval
-                time_since_last = current_time - self.last_request_time
-                if time_since_last < self.min_interval:
-                    time.sleep(self.min_interval - time_since_last)
+                time.sleep(1)  # Wait 1 second and check again
 
 # Create rate limiter instance after class definition
 rate_limiter = RateLimiter(Config.MAX_REQUESTS_PER_MINUTE)
 
 def preload_cache():
     """Pre-load all cached data on app startup to ensure first visitor gets cached data"""
-    logger.info("Starting cache preload...")
-    
-    # Pre-fetch all the data that will be needed with delays between calls
     try:
-        cache_manager.update_cache_status('market_data', 'running')
-        market_data = get_market_data()
-        if market_data:
-            cache_manager.update_cache_status('market_data', 'success')
-            logger.info("Market data preloaded: Success")
-        else:
-            cache_manager.update_cache_status('market_data', 'failed', 'No data returned')
-            logger.info("Market data preloaded: Failed")
-        time.sleep(3)  # Wait 3 seconds between API calls
+        # Pre-fetch all the data that will be needed
+        get_market_data()
+        get_eth_btc_ratio()
+        get_bitcoin_rsi()
+        get_btc_monthly_roi()
+        get_top10_alts_performance()
+        get_altcoin_volume_dominance()
+        
     except Exception as e:
-        cache_manager.update_cache_status('market_data', 'failed', str(e))
-        logger.error(f"Market data preload failed: {str(e)}")
-    
-    try:
-        cache_manager.update_cache_status('eth_btc_ratio', 'running')
-        eth_btc = get_eth_btc_ratio()
-        if eth_btc:
-            cache_manager.update_cache_status('eth_btc_ratio', 'success')
-            logger.info("ETH/BTC ratio preloaded: Success")
-        else:
-            cache_manager.update_cache_status('eth_btc_ratio', 'failed', 'No data returned')
-            logger.info("ETH/BTC ratio preloaded: Failed")
-        time.sleep(3)
-    except Exception as e:
-        cache_manager.update_cache_status('eth_btc_ratio', 'failed', str(e))
-        logger.error(f"ETH/BTC ratio preload failed: {str(e)}")
-    
-    try:
-        cache_manager.update_cache_status('bitcoin_rsi', 'running')
-        btc_rsi = get_bitcoin_rsi()
-        if btc_rsi:
-            cache_manager.update_cache_status('bitcoin_rsi', 'success')
-            logger.info("Bitcoin RSI preloaded: Success")
-        else:
-            cache_manager.update_cache_status('bitcoin_rsi', 'failed', 'No data returned')
-            logger.info("Bitcoin RSI preloaded: Failed")
-        time.sleep(3)
-    except Exception as e:
-        cache_manager.update_cache_status('bitcoin_rsi', 'failed', str(e))
-        logger.error(f"Bitcoin RSI preloaded: Failed")
-    
-    try:
-        cache_manager.update_cache_status('btc_monthly_roi', 'running')
-        btc_roi = get_btc_monthly_roi()
-        if btc_roi:
-            cache_manager.update_cache_status('btc_monthly_roi', 'success')
-            logger.info("BTC monthly ROI preloaded: Success")
-        else:
-            cache_manager.update_cache_status('btc_monthly_roi', 'failed', 'No data returned')
-            logger.info("BTC monthly ROI preloaded: Failed")
-        time.sleep(3)
-    except Exception as e:
-        cache_manager.update_cache_status('btc_monthly_roi', 'failed', str(e))
-        logger.error(f"BTC monthly ROI preload failed: {str(e)}")
-    
-    try:
-        cache_manager.update_cache_status('top10_alts_performance', 'running')
-        alts_perf = get_top10_alts_performance()
-        if alts_perf:
-            cache_manager.update_cache_status('top10_alts_performance', 'success')
-            logger.info("Top 10 alts performance preloaded: Success")
-        else:
-            cache_manager.update_cache_status('top10_alts_performance', 'failed', 'No data returned')
-            logger.info("Top 10 alts performance preloaded: Failed")
-        time.sleep(3)
-    except Exception as e:
-        cache_manager.update_cache_status('top10_alts_performance', 'failed', str(e))
-        logger.error(f"Top 10 alts performance preload failed: {str(e)}")
-    
-    try:
-        cache_manager.update_cache_status('altcoin_volume_dominance', 'running')
-        volume_dom = get_altcoin_volume_dominance()
-        if volume_dom:
-            cache_manager.update_cache_status('altcoin_volume_dominance', 'success')
-            logger.info("Altcoin volume dominance preloaded: Success")
-        else:
-            cache_manager.update_cache_status('altcoin_volume_dominance', 'failed', 'No data returned')
-            logger.info("Altcoin volume dominance preloaded: Failed")
-    except Exception as e:
-        cache_manager.update_cache_status('altcoin_volume_dominance', 'failed', str(e))
-        logger.error(f"Altcoin volume dominance preload failed: {str(e)}")
-    
-    logger.info("Cache preload completed")
+        pass  # Silently continue if pre-loading fails
 
 def cache_with_timeout(timeout_minutes=60):
     def decorator(func):
@@ -336,28 +212,12 @@ def cache_with_timeout(timeout_minutes=60):
                 result, timestamp = cache_manager.cache[cache_key]
                 if current_time - timestamp < timedelta(minutes=timeout_minutes):
                     cache_manager.cache['metadata']['cache_hits'] += 1
-                    # Update status to success for cache hit
-                    cache_manager.update_cache_status(func.__name__, 'success')
                     return result
             
             # Update metadata on cache miss
-            try:
-                result = func(*args, **kwargs)
-                
-                # Only cache successful results (not None or empty values)
-                if result is not None and result != {} and result != []:
-                    cache_manager.set(cache_key, result, current_time)
-                    cache_manager.update_cache_status(func.__name__, 'success')
-                    logger.info(f"Cached successful result for {func.__name__}")
-                else:
-                    cache_manager.update_cache_status(func.__name__, 'failed', 'No data returned')
-                    logger.warning(f"Not caching failed result for {func.__name__}: {result}")
-                
-                return result
-            except Exception as e:
-                cache_manager.update_cache_status(func.__name__, 'failed', str(e))
-                logger.error(f"Function {func.__name__} failed: {str(e)}")
-                raise
+            result = func(*args, **kwargs)
+            cache_manager.set(cache_key, result, current_time)
+            return result
         return wrapper
     return decorator
 
@@ -385,17 +245,10 @@ def make_coingecko_request(endpoint, params=None):
             timeout=10  # Add timeout
         )
         
-        # Handle 429 (Too Many Requests) specifically
-        if response.status_code == 429:
-            logger.warning(f"Rate limit hit for endpoint {endpoint}. Waiting 60 seconds before retry.")
-            time.sleep(60)  # Wait 1 minute before allowing any more requests
-            return None
-        
-        response.raise_for_status()  # Raise exception for other bad status codes
+        response.raise_for_status()  # Raise exception for bad status codes
         return response.json()
             
     except requests.RequestException as e:
-        logger.error(f"Request failed for endpoint {endpoint}: {str(e)}")
         return None
 
 @cache_with_timeout(60)
@@ -648,48 +501,164 @@ def get_altcoin_volume_dominance():
     except Exception as e:
         return None
 
+def is_time_for_pull():
+    """Check if it's time for a scheduled data pull based on UTC time"""
+    current_utc = datetime.now(timezone.utc)
+    current_hour = current_utc.hour
+    
+    # Check if current hour matches any of our pull times
+    if current_hour in Config.PULL_TIMES:
+        # Only pull once per hour (avoid multiple pulls in the same hour)
+        cache_key = f"pull_completed_{current_utc.strftime('%Y-%m-%d_%H')}"
+        if cache_key not in cache_manager.cache:
+            logger.info(f"🕐 SCHEDULED PULL: It's {current_hour}:00 UTC - time for data refresh")
+            return True
+        else:
+            logger.info(f"⏭️  PULL SKIPPED: Already completed pull for {current_hour}:00 UTC")
+            return False
+    
+    return False
+
+def mark_pull_completed():
+    """Mark that a pull has been completed for the current hour"""
+    current_utc = datetime.now(timezone.utc)
+    cache_key = f"pull_completed_{current_utc.strftime('%Y-%m-%d_%H')}"
+    # Cache for 2 hours to ensure we don't pull again in the same hour
+    cache_manager.set(cache_key, True, current_utc)
+    logger.info(f"✅ PULL COMPLETED: Marked pull as completed for {current_utc.strftime('%Y-%m-%d %H:00 UTC')}")
+
+def get_next_pull_time():
+    """Get the next scheduled pull time"""
+    current_utc = datetime.now(timezone.utc)
+    current_hour = current_utc.hour
+    
+    # Find next pull time
+    for pull_hour in sorted(Config.PULL_TIMES):
+        if pull_hour > current_hour:
+            next_pull = current_utc.replace(hour=pull_hour, minute=0, second=0, microsecond=0)
+            return next_pull
+    
+    # If no more pulls today, get first pull tomorrow
+    tomorrow = current_utc + timedelta(days=1)
+    next_pull = tomorrow.replace(hour=min(Config.PULL_TIMES), minute=0, second=0, microsecond=0)
+    return next_pull
+
+def log_api_usage():
+    """Log current API usage statistics"""
+    usage_stats = cache_manager.get_api_usage_stats()
+    logger.info(f"📊 API USAGE: {usage_stats['calls_used']}/{usage_stats['calls_remaining']} calls used this month ({usage_stats['usage_percentage']:.1f}%)")
+    
+    # Calculate daily average
+    days_elapsed = (datetime.now() - cache_manager.month_start).days + 1
+    daily_average = usage_stats['calls_used'] / days_elapsed
+    projected_monthly = daily_average * 30
+    
+    logger.info(f"📈 PROJECTION: {daily_average:.1f} calls/day average, projected {projected_monthly:.0f} calls/month")
+    
+    if projected_monthly > 8000:
+        logger.warning(f"⚠️  WARNING: Projected monthly usage ({projected_monthly:.0f}) exceeds safety limit (8000)")
+    else:
+        logger.info(f"✅ SAFE: Projected monthly usage ({projected_monthly:.0f}) within safety limit (8000)")
+
+def log_pull_schedule():
+    """Log the current pull schedule and next pull time"""
+    next_pull = get_next_pull_time()
+    time_until_pull = next_pull - datetime.now(timezone.utc)
+    hours_until = time_until_pull.total_seconds() / 3600
+    
+    logger.info(f"🕐 PULL SCHEDULE: Next pull at {next_pull.strftime('%Y-%m-%d %H:%M UTC')} (in {hours_until:.1f} hours)")
+    logger.info(f"📅 DAILY PULLS: {Config.PULL_TIMES} UTC ({', '.join([f'{h}:00' for h in Config.PULL_TIMES])})")
+
+def check_health_status():
+    """Check the actual health of the system without exposing sensitive data"""
+    health_checks = {
+        'api_connectivity': False,
+        'data_freshness': False,
+        'cache_functionality': False,
+        'rate_limit_status': False
+    }
+    
+    try:
+        # Check API connectivity (test with a simple, safe endpoint)
+        test_response = make_coingecko_request('ping')
+        health_checks['api_connectivity'] = test_response is not None
+        
+        # Check data freshness (ensure cache has recent data)
+        if cache_manager.cache['metadata']['last_refresh']:
+            time_since_refresh = datetime.now() - cache_manager.cache['metadata']['last_refresh']
+            # Data is fresh if refreshed within last 13 hours (allowing 1 hour buffer)
+            health_checks['data_freshness'] = time_since_refresh.total_seconds() < (13 * 3600)
+        
+        # Check cache functionality (ensure cache has data)
+        health_checks['cache_functionality'] = len(cache_manager.cache) > 1  # More than just metadata
+        
+        # Check rate limit status (ensure we're not exceeding limits)
+        usage_stats = cache_manager.get_api_usage_stats()
+        max_allowed = int(Config.MAX_MONTHLY_API_CALLS * Config.SAFETY_MARGIN)
+        health_checks['rate_limit_status'] = usage_stats['calls_used'] < max_allowed
+        
+        # Determine overall health
+        healthy_checks = sum(health_checks.values())
+        total_checks = len(health_checks)
+        
+        if healthy_checks == total_checks:
+            return 'healthy', health_checks
+        elif healthy_checks >= total_checks * 0.75:  # 75% or more checks pass
+            return 'degraded', health_checks
+        else:
+            return 'unhealthy', health_checks
+            
+    except Exception as e:
+        logger.error(f"❌ HEALTH CHECK ERROR: {str(e)}")
+        return 'error', health_checks
+
 @app.route('/')
 def index():
     try:
-        cache_manager.cleanup()
+        # Log current status
+        logger.info(f"🌐 WEBSITE ACCESS: User accessed website at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        
+        # Check if it's time for a scheduled pull
+        if is_time_for_pull():
+            logger.info("🚀 STARTING SCHEDULED DATA PULL")
+            log_api_usage()
+            
+            # Force cache refresh by clearing old data
+            cache_manager.cleanup()
+            
+            # Pre-load fresh data
+            try:
+                preload_cache()
+                logger.info("✅ SCHEDULED PULL: Successfully refreshed all data")
+                mark_pull_completed()
+            except Exception as e:
+                logger.error(f"❌ SCHEDULED PULL FAILED: {str(e)}")
+        else:
+            logger.info("💾 SERVING CACHED DATA: Using existing cache")
+        
+        # Log pull schedule
+        log_pull_schedule()
         
         # Get and validate all required data
         market_data = get_market_data()
         if not market_data:
-            logger.error("Failed to fetch market data")
             raise APIError("Failed to fetch market data")
         
-        logger.info(f"Market data received: {market_data}")
-        
         bitcoin_rsi = get_bitcoin_rsi()
-        logger.info(f"Bitcoin RSI: {bitcoin_rsi}")
-        
         altcoin_dominance_ratio = get_altcoin_dominance()
-        logger.info(f"Altcoin dominance ratio: {altcoin_dominance_ratio}")
         
         # Calculate indicators
         bitcoin_dominance = market_data['market_cap_percentage']['btc']
         total_market_cap = market_data['total_market_cap']['usd']
         btc_market_cap = bitcoin_dominance * total_market_cap / 100
         altcoin_market_cap = total_market_cap - btc_market_cap
-        
-        logger.info(f"Calculated: BTC dominance={bitcoin_dominance}, total_mcap={total_market_cap}, alt_mcap={altcoin_market_cap}")
-        
         eth_btc_ratio = get_eth_btc_ratio()
-        logger.info(f"ETH/BTC ratio: {eth_btc_ratio}")
-        
         fear_greed = get_fear_greed_index()
-        logger.info(f"Fear & Greed: {fear_greed}")
         
         # Get additional indicators
         btc_monthly_roi = get_btc_monthly_roi()
-        logger.info(f"BTC monthly ROI: {btc_monthly_roi}")
-        
         top10_alts_perf = get_top10_alts_performance()
-        logger.info(f"Top 10 alts performance: {top10_alts_perf}")
-        
         altcoin_volume_dominance = get_altcoin_volume_dominance()
-        logger.info(f"Altcoin volume dominance: {altcoin_volume_dominance}")
         
         # Enhanced alt season detection with safe handling of None values
         is_alt_season = (
@@ -706,11 +675,15 @@ def index():
             'last_refresh': cache_manager.cache['metadata']['last_refresh'].strftime("%Y-%m-%d %H:%M:%S UTC") if cache_manager.cache['metadata']['last_refresh'] else "Never",
             'next_refresh': cache_manager.cache['metadata']['next_refresh'].strftime("%Y-%m-%d %H:%M:%S UTC") if cache_manager.cache['metadata']['next_refresh'] else "Unknown",
             'minutes_until_refresh': int((cache_manager.cache['metadata']['next_refresh'] - datetime.now()).total_seconds() / 60) if cache_manager.cache['metadata']['next_refresh'] else 0,
-            'individual_statuses': cache_manager.get_cache_statuses()
+            'next_scheduled_pull': get_next_pull_time().strftime("%Y-%m-%d %H:%M UTC"),
+            'pull_schedule': f"{', '.join([f'{h}:00' for h in Config.PULL_TIMES])} UTC"
         }
         
         # Add API usage statistics
         api_usage = cache_manager.get_api_usage_stats()
+        
+        # Log successful page render
+        logger.info(f"✅ PAGE RENDERED: Successfully rendered page with alt season status: {is_alt_season}")
         
         return render_template('index.html',
                              bitcoin_dominance=bitcoin_dominance or 0,
@@ -728,6 +701,7 @@ def index():
                              api_usage=api_usage,
                              google_analytics_id=Config.GOOGLE_ANALYTICS_ID)
     except Exception as e:
+        logger.error(f"❌ PAGE ERROR: {str(e)}")
         return render_template('error.html', error=str(e)), 500
 
 @app.template_filter('number_format')
@@ -765,17 +739,116 @@ def sitemap():
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
-
+@app.route('/status')
+def status():
+    """Status endpoint for monitoring on PythonAnywhere"""
+    try:
+        current_utc = datetime.now(timezone.utc)
+        next_pull = get_next_pull_time()
+        time_until_pull = next_pull - current_utc
+        hours_until = time_until_pull.total_seconds() / 3600
+        
+        # Get API usage stats
+        api_usage = cache_manager.get_api_usage_stats()
+        
+        # Calculate daily average and projection
+        days_elapsed = (current_utc - cache_manager.month_start).days + 1
+        daily_average = api_usage['calls_used'] / days_elapsed
+        projected_monthly = daily_average * 30
+        
+        # Check if it's time for a pull
+        should_pull = is_time_for_pull()
+        
+        # Perform actual health check
+        health_status, health_details = check_health_status()
+        
+        status_data = {
+            'timestamp': current_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
+            'status': health_status,
+            'health_checks': {
+                'api_connectivity': health_details['api_connectivity'],
+                'data_freshness': health_details['data_freshness'],
+                'cache_functionality': health_details['cache_functionality'],
+                'rate_limit_status': health_details['rate_limit_status']
+            },
+            'pull_schedule': {
+                'daily_times': Config.PULL_TIMES,
+                'next_pull': next_pull.strftime("%Y-%m-%d %H:%M UTC"),
+                'hours_until_next': round(hours_until, 2),
+                'should_pull_now': should_pull,
+                'pull_times_formatted': f"{', '.join([f'{h}:00' for h in Config.PULL_TIMES])} UTC"
+            },
+            'cache': {
+                'last_refresh': cache_manager.cache['metadata']['last_refresh'].strftime("%Y-%m-%d %H:%M:%S UTC") if cache_manager.cache['metadata']['last_refresh'] else "Never",
+                'next_refresh': cache_manager.cache['metadata']['next_refresh'].strftime("%Y-%m-%d %H:%M:%S UTC") if cache_manager.cache['metadata']['next_refresh'] else "Unknown",
+                'cache_hits': cache_manager.cache['metadata']['cache_hits'],
+                'timeout_minutes': Config.CACHE_TIMEOUT
+            },
+            'api_usage': {
+                'calls_used': api_usage['calls_used'],
+                'calls_remaining': api_usage['calls_remaining'],
+                'month_start': api_usage['month_start'],
+                'usage_percentage': round(api_usage['usage_percentage'], 1),
+                'daily_average': round(daily_average, 1),
+                'projected_monthly': round(projected_monthly, 0),
+                'safety_status': 'safe' if projected_monthly <= 8000 else 'warning'
+            },
+            'configuration': {
+                'cache_timeout_minutes': Config.CACHE_TIMEOUT,
+                'cache_cleanup_age_minutes': Config.CACHE_CLEANUP_AGE,
+                'max_requests_per_minute': Config.MAX_REQUESTS_PER_MINUTE,
+                'max_monthly_calls': Config.MAX_MONTHLY_API_CALLS,
+                'safety_margin': Config.SAFETY_MARGIN
+            }
+        }
+        
+        # Log status check with health status
+        logger.info(f"📊 STATUS CHECK: Status endpoint accessed at {current_utc.strftime('%Y-%m-%d %H:%M:%S UTC')} - Health: {health_status}")
+        
+        return jsonify(status_data)
+        
+    except Exception as e:
+        logger.error(f"❌ STATUS ERROR: {str(e)}")
+        return jsonify({
+            'timestamp': datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+            'status': 'error',
+            'error': 'Internal server error'  # Don't expose actual error details
+        }), 500
 
 if __name__ == '__main__':
+    # Log startup information
+    logger.info("🚀 APPLICATION STARTING: Alt Season Dashboard")
+    logger.info(f"📅 PULL SCHEDULE: {Config.PULL_TIMES} UTC ({', '.join([f'{h}:00' for h in Config.PULL_TIMES])})")
+    logger.info(f"⏰ CACHE TIMEOUT: {Config.CACHE_TIMEOUT} minutes ({Config.CACHE_TIMEOUT/60:.1f} hours)")
+    logger.info(f"🔧 API RATE LIMIT: {Config.MAX_REQUESTS_PER_MINUTE} calls/minute")
+    logger.info(f"📊 MONTHLY LIMIT: {Config.MAX_MONTHLY_API_CALLS} calls (safety: {int(Config.MAX_MONTHLY_API_CALLS * Config.SAFETY_MARGIN)})")
+    
     # Pre-load cache on startup
+    logger.info("🔄 PRE-LOADING CACHE: Fetching initial data...")
     preload_cache()
+    logger.info("✅ CACHE PRE-LOADED: Initial data fetched successfully")
+    
+    # Log initial status
+    log_pull_schedule()
+    log_api_usage()
     
     # Development - run on local network
+    logger.info("🌐 STARTING DEVELOPMENT SERVER: http://0.0.0.0:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
 else:
     # Production - pre-load cache when app starts
+    logger.info("🚀 PRODUCTION STARTUP: Alt Season Dashboard")
+    logger.info(f"📅 PULL SCHEDULE: {Config.PULL_TIMES} UTC ({', '.join([f'{h}:00' for h in Config.PULL_TIMES])})")
+    logger.info(f"⏰ CACHE TIMEOUT: {Config.CACHE_TIMEOUT} minutes ({Config.CACHE_TIMEOUT/60:.1f} hours)")
+    
+    # Pre-load cache when app starts
+    logger.info("🔄 PRE-LOADING CACHE: Fetching initial data...")
     preload_cache()
+    logger.info("✅ CACHE PRE-LOADED: Initial data fetched successfully")
+    
+    # Log initial status
+    log_pull_schedule()
+    log_api_usage()
     
     # Production
     gunicorn_logger = logging.getLogger('gunicorn.error')
