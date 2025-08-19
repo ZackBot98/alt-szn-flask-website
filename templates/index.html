@@ -263,6 +263,51 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Cache Details Dropdown -->
+        <div class="bg-white dark:bg-gray-800 rounded-md shadow-sm p-2 mb-4">
+            <button onclick="toggleCacheDetails()" class="w-full flex items-center justify-between py-1 px-2 bg-gray-50 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                <span>View Individual Cache Statuses</span>
+                <svg id="cache-arrow" class="w-3 h-3 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            
+            <div id="cache-details" class="mt-2 space-y-1 max-h-0 overflow-hidden transition-all duration-200">
+                {% for key, status in cache_status.individual_statuses.items() %}
+                <div class="flex items-center justify-between text-xs px-2 py-1 rounded
+                    {% if status.status == 'success' %}
+                        bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300
+                    {% elif status.status == 'failed' %}
+                        bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300
+                    {% elif status.status == 'running' %}
+                        bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300
+                    {% else %}
+                        bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400
+                    {% endif %}">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full
+                            {% if status.status == 'success' %}
+                                bg-green-500
+                            {% elif status.status == 'failed' %}
+                                bg-red-500
+                            {% elif status.status == 'running' %}
+                                bg-yellow-500
+                            {% else %}
+                                bg-gray-400
+                            {% endif %}"></div>
+                        <span class="font-mono">{{ key.replace('_', ' ').title() }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs opacity-75">{{ status.last_attempt }}</span>
+                        {% if status.status == 'failed' and status.error %}
+                        <span class="text-xs opacity-75" title="{{ status.error }}">⚠️</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
         <!-- Add this after the status banner -->
         <div class="bg-white dark:bg-gray-800 rounded-md shadow-sm p-1.5 mb-4">
@@ -706,10 +751,28 @@
             }
         }
 
+        // Toggle cache details functionality
+        function toggleCacheDetails() {
+            const content = document.getElementById('cache-details');
+            const arrow = document.getElementById('cache-arrow');
+            
+            if (content.style.maxHeight === '0px' || !content.style.maxHeight) {
+                content.style.maxHeight = '300px';
+                arrow.classList.add('rotate-180');
+            } else {
+                content.style.maxHeight = '0px';
+                arrow.classList.remove('rotate-180');
+            }
+        }
+
         // Initialize checklist as closed on page load
         document.addEventListener('DOMContentLoaded', function() {
             const content = document.getElementById('checklist-content');
             content.style.maxHeight = '0px';
+            
+            // Initialize cache details as closed
+            const cacheContent = document.getElementById('cache-details');
+            cacheContent.style.maxHeight = '0px';
             
             // Check if banner should be hidden
             checkBannerVisibility();
