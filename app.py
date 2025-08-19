@@ -55,7 +55,7 @@ class CacheManager:
         }
         # API usage tracking
         self.api_calls_this_month = 0
-        self.month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        self.month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
     def get(self, key):
         if key in self.cache:
@@ -74,7 +74,7 @@ class CacheManager:
 
     def track_api_call(self):
         """Track API call usage and check monthly limits"""
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
         
         # Check if we're in a new month
         if current_time.month != self.month_start.month or current_time.year != self.month_start.year:
@@ -135,12 +135,12 @@ class CacheManager:
                     break
             
             # Cache the stablecoin IDs for 24 hours (stablecoins don't change often)
-            self.set('stablecoin_ids', stablecoin_ids, datetime.now())
+            self.set('stablecoin_ids', stablecoin_ids, datetime.now(timezone.utc))
         
         return self.cache['stablecoin_ids'][0]  # Return the set from (value, timestamp)
 
     def cleanup(self):
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
         expired_keys = []
         
         # Fix the cache cleanup logic
@@ -205,7 +205,7 @@ def cache_with_timeout(timeout_minutes=60):
         @wraps(func)
         def wrapper(*args, **kwargs):
             cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
-            current_time = datetime.now()
+            current_time = datetime.now(timezone.utc)
             
             # Update metadata on cache hit
             if cache_key in cache_manager.cache:
@@ -549,7 +549,7 @@ def log_api_usage():
     logger.info(f"📊 API USAGE: {usage_stats['calls_used']}/{usage_stats['calls_remaining']} calls used this month ({usage_stats['usage_percentage']:.1f}%)")
     
     # Calculate daily average
-    days_elapsed = (datetime.now() - cache_manager.month_start).days + 1
+    days_elapsed = (datetime.now(timezone.utc) - cache_manager.month_start).days + 1
     daily_average = usage_stats['calls_used'] / days_elapsed
     projected_monthly = daily_average * 30
     
@@ -585,7 +585,7 @@ def check_health_status():
         
         # Check data freshness (ensure cache has recent data)
         if cache_manager.cache['metadata']['last_refresh']:
-            time_since_refresh = datetime.now() - cache_manager.cache['metadata']['last_refresh']
+            time_since_refresh = datetime.now(timezone.utc) - cache_manager.cache['metadata']['last_refresh']
             # Data is fresh if refreshed within last 13 hours (allowing 1 hour buffer)
             health_checks['data_freshness'] = time_since_refresh.total_seconds() < (13 * 3600)
         
@@ -674,7 +674,7 @@ def index():
         cache_status = {
             'last_refresh': cache_manager.cache['metadata']['last_refresh'].strftime("%Y-%m-%d %H:%M:%S UTC") if cache_manager.cache['metadata']['last_refresh'] else "Never",
             'next_refresh': cache_manager.cache['metadata']['next_refresh'].strftime("%Y-%m-%d %H:%M:%S UTC") if cache_manager.cache['metadata']['next_refresh'] else "Unknown",
-            'minutes_until_refresh': int((cache_manager.cache['metadata']['next_refresh'] - datetime.now()).total_seconds() / 60) if cache_manager.cache['metadata']['next_refresh'] else 0,
+            'minutes_until_refresh': int((cache_manager.cache['metadata']['next_refresh'] - datetime.now(timezone.utc)).total_seconds() / 60) if cache_manager.cache['metadata']['next_refresh'] else 0,
             'next_scheduled_pull': get_next_pull_time().strftime("%Y-%m-%d %H:%M UTC"),
             'pull_schedule': f"{', '.join([f'{h}:00' for h in Config.PULL_TIMES])} UTC"
         }
