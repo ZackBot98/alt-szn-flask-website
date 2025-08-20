@@ -251,7 +251,7 @@ def make_coingecko_request(endpoint, params=None):
     except requests.RequestException as e:
         return None
 
-@cache_with_timeout(60)
+@cache_with_timeout(720)
 def get_market_data():
     data = make_coingecko_request('global')
     if data and 'data' in data:
@@ -261,7 +261,7 @@ def get_market_data():
         'total_market_cap': {'usd': 0}
     }
 
-@cache_with_timeout(60)
+@cache_with_timeout(720)
 def get_eth_btc_ratio():
     data = make_coingecko_request('simple/price', {
         'ids': 'ethereum,bitcoin',
@@ -274,7 +274,7 @@ def get_eth_btc_ratio():
         return eth_price / btc_price
     return 0
 
-@cache_with_timeout(60)
+@cache_with_timeout(720)
 def get_fear_greed_index():
     try:
         response = requests.get(Config.FEAR_GREED_API, timeout=10)
@@ -291,7 +291,7 @@ def get_fear_greed_index():
     except (requests.RequestException, ValueError, KeyError, IndexError) as e:
         return {'value': '0', 'value_classification': 'Unknown'}
 
-@cache_with_timeout(60)
+@cache_with_timeout(720)
 def get_bitcoin_rsi():
     try:
         # Get BTC/USD hourly OHLC data for more accurate RSI calculation
@@ -371,7 +371,7 @@ def get_altcoin_dominance():
         pass
     return None
 
-@cache_with_timeout(60)
+@cache_with_timeout(720)
 def get_btc_monthly_roi():
     try:
         data = make_coingecko_request('coins/bitcoin/market_chart', {
@@ -389,7 +389,7 @@ def get_btc_monthly_roi():
         pass
     return None
 
-@cache_with_timeout(60)
+@cache_with_timeout(720)
 def get_top10_alts_performance():
     try:
         # Get cached stablecoin IDs
