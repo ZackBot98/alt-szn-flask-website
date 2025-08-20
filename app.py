@@ -665,8 +665,8 @@ def check_health_status():
     }
     
     try:
-        # Check API connectivity using cached data instead of fresh API call
-        # Only make a fresh API call if we don't have recent cached data
+        # Check API connectivity using cached data ONLY - never make fresh API calls
+        # We'll assume connectivity is good if we have recent cached data
         current_time = datetime.now(timezone.utc)
         cache_has_recent_data = False
         
@@ -674,13 +674,8 @@ def check_health_status():
             time_since_refresh = current_time - cache_manager.cache['metadata']['last_refresh']
             cache_has_recent_data = time_since_refresh.total_seconds() < (2 * 3600)  # 2 hours
         
-        if cache_has_recent_data:
-            # Use cached data to determine connectivity
-            health_checks['api_connectivity'] = True
-        else:
-            # Only make API call if cache is stale
-            test_response = make_coingecko_request('ping')
-            health_checks['api_connectivity'] = test_response is not None
+        # Use cached data to determine connectivity - no API calls
+        health_checks['api_connectivity'] = cache_has_recent_data
         
         # Check data freshness (ensure cache has recent data)
         cache_status = centralized_cache.get_cache_status()
