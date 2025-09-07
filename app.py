@@ -751,7 +751,7 @@ def index():
             raise APIError("Failed to fetch market data")
         
         bitcoin_rsi = get_bitcoin_rsi()
-        altcoin_dominance_ratio = get_altcoin_volume_dominance()
+        altcoin_dominance_ratio = get_altcoin_dominance()
         
         # Calculate indicators
         bitcoin_dominance = market_data['market_cap_percentage']['btc']
